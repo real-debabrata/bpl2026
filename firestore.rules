@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Only this signed-in email counts as admin. Change it to your admin account's email.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'YOUR_ADMIN_EMAIL@example.com';
+    }
+
+    // Everyone can read the public tournament data; only the admin can change it.
+    match /config/{id}  { allow read: if true; allow write: if isAdmin(); }
+    match /teams/{id}   { allow read: if true; allow write: if isAdmin(); }
+    match /matches/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // Anyone can submit a registration (create only). Only the admin can read, approve or delete.
+    match /registrations/{id} {
+      allow create: if request.resource.data.status == 'pending'
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.players is list && request.resource.data.players.size() <= 3;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

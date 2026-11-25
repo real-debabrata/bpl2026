@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Admin · Tournament</title>
+<style>
+:root{--bg:#f3f6fb;--ln:#dde5f0;--tx:#16233b;--mu:#64748b;--pr:#1463ff;--ok:#12a150;--bad:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tx);background:var(--bg)}
+a{color:var(--pr)}
+.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid var(--ln)}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.c{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:16px;margin-bottom:14px}
+h2,h3{margin:0 0 10px}
+.mu{color:var(--mu);font-size:13px}.ok{color:var(--ok);font-size:14px}.er{color:var(--bad);font-size:14px}
+label{display:block;font-size:13px;font-weight:600;color:var(--mu);margin-bottom:10px}
+input,select,textarea{display:block;width:100%;min-height:40px;margin-top:4px;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--tx);font:inherit;font-weight:400}
+input[type=checkbox]{display:inline-block;width:auto;min-height:0;margin:0 8px 0 0}
+.b{min-height:40px;padding:0 16px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--tx);font:600 14px system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.b.p{background:var(--pr);border-color:var(--pr);color:#fff}.b.on{background:#e8f0ff;border-color:var(--pr);color:var(--pr)}.b.d{color:var(--bad)}.b:disabled{opacity:.45;cursor:not-allowed}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0 12px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--ln)}
+.r:first-of-type{border-top:0}
+.rw{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.sb{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sd{border:1px solid var(--ln);border-radius:12px;padding:14px;text-align:center}
+.sn{font-weight:700;overflow-wrap:anywhere}
+.sc{font-size:clamp(44px,13vw,76px);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.pm{display:flex;gap:8px;margin-top:8px}.pm .b{flex:1;min-height:52px;font-size:22px;padding:0}
+.al{margin-top:12px;padding:8px;border-radius:8px;background:#fff7e0;border:1px solid #f5c542;color:#8a5a00;font-weight:700;text-align:center}
+.tg{font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;background:#e8f0ff;color:var(--pr)}.tg.live{background:#fee2e2;color:var(--bad)}.tg.done{background:#e2e8f0;color:var(--mu)}
+.lg{max-width:380px;margin:10vh auto 0}
+@media(max-width:520px){.sb{gap:8px}.sd{padding:10px}.wrap{padding:12px}}
+</style></head><body><div id="app"></div>
+<script src="firebase-config.js"></script>
+<script src="data.js"></script>
+<script>
+let S={cfg:{...CFG0},teams:[],m:[],reg:[]},tab='score',cur=null,hist=[],msg='',user=null,started=false;
+const tn=id=>(S.teams.find(t=>t.id==id)||{}).name,nm=(m,k)=>tn(k?m.b:m.a)||(k?m.hb:m.ha)||'TBD',put=m=>DB.set('matches',m.id,m);
+const rt=c=>`Best of ${c.bestOf} · game to ${c.gamePts}, win by ${c.winBy}, cap ${c.cap} · Win ${c.winPts} / Tie ${c.tiePts}${c.allowTie?'':' (off)'} / Loss ${c.lossPts}`;
+const mg=()=>msg?`<p class="${msg[0]=='✓'?'ok':'er'}" role="status">${esc(msg)}</p>`:'';
+const snap=m=>hist.push({id:m.id,gm:JSON.stringify(m.gm),s:m.s,w:m.w||''});
+function loginView(){return`<div class="c lg"><h2>Admin login</h2><p class="mu">${DB.demo?'Demo mode: username <b>admin</b>, password <b>admin</b>.':'Sign in with your Firebase admin account.'}</p><label>${DB.demo?'Username':'Email'}<input id="u" type="${DB.demo?'text':'email'}" autocomplete="username"></label><label>Password<input id="p" type="password" autocomplete="current-password"></label>${mg()}<button class="b p" data-a="login" style="width:100%">Log in</button></div>`}
+function scoreView(){const c=S.cfg,L=S.m.filter(m=>m.a&&m.b);
+ const h=`<div class="c"><label>Match<select data-a="pick"><option value="">Select a match</option>${L.map(m=>`<option value="${esc(m.id)}"${m.id==cur?' selected':''}>${esc(nm(m,0))} vs ${esc(nm(m,1))} · ${m.s}</option>`).join('')}</select></label><p class="mu">${esc(rt(c))}</p></div>`;
+ const m=S.m.find(x=>x.id==cur);if(!m)return h;
+ const x=res(m,c),g=m.gm[m.gm.length-1]||[0,0],live=m.s=='live',full=gw(g[0],g[1],c)>0,gp=[0,1].map(k=>live&&!full&&gw(k?g[0]:g[0]+1,k?g[1]+1:g[1],c)==k+1),mp=gp.map((v,k)=>v&&(k?x.gb:x.ga)+1>=need(c));
+ const al=mp[0]?nm(m,0)+': MATCH POINT':mp[1]?nm(m,1)+': MATCH POINT':gp[0]?nm(m,0)+': GAME POINT':gp[1]?nm(m,1)+': GAME POINT':'';
+ const side=k=>`<div class="sd"><div class="sn">${esc(nm(m,k))}</div><div class="sc">${g[k]}</div><div class="mu">Games won: ${k?x.gb:x.ga}</div><div class="pm"><button class="b" data-a="pt" data-k="${k}" data-d="-1" ${live?'':'disabled'}>−1</button><button class="b p" data-a="pt" data-k="${k}" data-d="1" ${live&&!full?'':'disabled'}>+1</button></div></div>`;
+ return h+`<div class="c"><div class="r"><b>Game ${Math.max(1,m.gm.length)} of ${c.bestOf}</b><span class="tg ${m.s}">${m.s.toUpperCase()}${m.w?' · '+(m.w=='T'?'TIE':'WIN '+m.w):''}</span></div><div class="sb">${side(0)}${side(1)}</div>${al?`<div class="al" role="alert">${esc(al)}</div>`:''}${full&&live?'<p class="ok" style="text-align:center">Game result is valid. Press End game.</p>':''}
+ <div class="rw"><button class="b p" data-a="start" ${m.s=='up'?'':'disabled'}>Start match</button><button class="b p" data-a="end" ${live?'':'disabled'}>End game</button><button class="b" data-a="undo">Undo</button><button class="b" data-a="wo" data-v="A" ${m.s=='done'?'disabled':''}>Walkover: ${esc(nm(m,0))}</button><button class="b" data-a="wo" data-v="B" ${m.s=='done'?'disabled':''}>Walkover: ${esc(nm(m,1))}</button><button class="b" data-a="wo" data-v="T" ${c.allowTie&&m.s!='done'?'':'disabled'}>Mark tie</button><button class="b" data-a="reopen" ${m.s=='done'?'':'disabled'}>Re-open</button></div>${mg()}</div>`}
+function matchView(){const o=S.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+ return`<div class="c"><h3>Create match</h3><div class="g"><label>Stage<select id="ms"><option>Group</option><option>Semi</option><option>Final</option></select></label><label>Team A<select id="ma"><option value="">Select</option>${o}</select></label><label>Team B<select id="mb"><option value="">Select</option>${o}</select></label><label>Date<input id="md" type="date"></label><label>Time<input id="mt" type="time"></label><label>Court<input id="mc" type="number" min="1" max="8" value="1"></label></div>${mg()}<button class="b p" data-a="addm">Add match</button></div><div class="c"><h3>All matches (${S.m.length})</h3>${S.m.map(m=>`<div class="r"><span>${esc(m.st)}${m.g?' '+esc(m.g):''} · ${esc(nm(m,0))} vs ${esc(nm(m,1))}<br><span class="mu">${esc(m.d)} ${esc(m.t)} · Court ${esc(m.c)}</span></span><span><span class="tg ${m.s}">${m.s}</span> <button class="b d" data-a="del" data-id="${esc(m.id)}">Delete</button></span></div>`).join('')||'<p class="mu">No matches yet.</p>'}</div>`}
+function teamView(){const pend=S.reg.filter(r=>r.status=='pending');
+ return`<div class="c"><h3>Pending registrations (${pend.length})</h3>${pend.map(r=>`<div class="r"><span><b>${esc(r.name)}</b><br><span class="mu">${esc(r.captain)} · ${esc(r.phone)} · ${esc(r.email)} · ${(r.players||[]).length} players${r.payRef?' · pay ref '+esc(r.payRef):''}</span></span><span style="display:flex;gap:8px;align-items:center"><select id="g_${esc(r.id)}" style="width:76px;margin:0"><option>A</option><option>B</option></select><button class="b p" data-a="appr" data-id="${esc(r.id)}">Approve</button><button class="b d" data-a="rej" data-id="${esc(r.id)}">Reject</button></span></div>`).join('')||'<p class="mu">No pending registrations.</p>'}${mg()}</div>
+ <div class="c"><h3>Teams (${S.teams.length}/${S.cfg.max})</h3>${S.teams.map(t=>`<div class="r"><span><b>${esc(t.name)}</b> <span class="mu">${(t.players||[]).length} players</span></span><span style="display:flex;gap:8px;align-items:center"><select data-a="grp" data-id="${esc(t.id)}" style="width:96px;margin:0">${['A','B'].map(g=>`<option value="${g}"${t.group==g?' selected':''}>Group ${g}</option>`).join('')}</select><button class="b d" data-a="delt" data-id="${esc(t.id)}">Delete</button></span></div>`).join('')||'<p class="mu">No teams yet.</p>'}</div>`}
+function setView(){const c=S.cfg,n=(k,l,mn,mx)=>`<label>${l}<input id="c_${k}" type="number" min="${mn}" max="${mx}" value="${c[k]}"></label>`;
+ return`<div class="c"><h3>Match rules</h3><div class="g">${n('gamePts','Points per game',1,99)}${n('winBy','Win by',1,5)}${n('cap','Point cap',1,99)}<label>Best of<select id="c_bestOf">${[1,3,5].map(v=>`<option${v==c.bestOf?' selected':''}>${v}</option>`).join('')}</select></label></div>
+ <h3>Tournament points</h3><div class="g">${n('winPts','Win',0,20)}${n('tiePts','Tie',0,20)}${n('lossPts','Loss',0,20)}</div><label><input id="c_allowTie" type="checkbox" ${c.allowTie?'checked':''}>Allow tied matches</label></div>
+ <div class="c"><h3>Site</h3><div class="g"><label>Tournament name<input id="c_name" value="${esc(c.name)}"></label><label>Dates text<input id="c_dates" value="${esc(c.dates)}"></label>${n('max','Max teams',2,64)}</div>
+ <label>Ticker announcements (one per line)<textarea id="c_ann" rows="3">${esc((c.ann||[]).join('\n'))}</textarea></label>
+ <label>Page background image URL (https, optional)<input id="c_bgPage" value="${esc(c.bgPage||'')}" placeholder="Blank = sample badminton court"></label><label>Hero background image URL (https, optional)<input id="c_bgHero" value="${esc(c.bgHero||'')}" placeholder="Blank = sample tournament arena"></label></div>
+ <div class="c"><p class="mu">${esc(rt(c))}. Changes apply to scoring, standings and the public rules straight away; finished matches are re-scored.</p>${mg()}<div class="rw" style="margin-top:0"><button class="b p" data-a="savec">Save settings</button><button class="b d" data-a="seed">${DB.demo?'Reset':'Load'} demo data</button></div></div>`}
+function render(){const el=$('#app');if(!user){el.innerHTML=`<div class="wrap">${loginView()}</div>`;return}
+ const pc=S.reg.filter(r=>r.status=='pending').length;
+ el.innerHTML=`<div class="top"><b>🏸 ${esc(S.cfg.name)} · Admin</b><span><a href="index.html" target="_blank" rel="noopener">View site</a> &nbsp;<button class="b" data-a="logout">Log out</button></span></div><div class="wrap"><div class="tabs">${[['score','Live scoring'],['match','Matches'],['team','Teams'+(pc?' ('+pc+')':'')],['set','Settings']].map(([k,l])=>`<button class="b ${tab==k?'on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>${{score:scoreView,match:matchView,team:teamView,set:setView}[tab]()}</div>`}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||b.tagName=='SELECT')return;const a=b.dataset.a,d=b.dataset,m=S.m.find(x=>x.id==cur),c=S.cfg;msg='';
+ try{
+ if(a=='login'){try{await DB.login($('#u').value.trim(),$('#p').value)}catch(x){msg='Wrong login details.'}}
+ else if(a=='logout')await DB.logout();
+ else if(a=='tab')tab=d.v;
+ else if(a=='start'&&m){m.s='live';if(!m.gm.length)m.gm.push([0,0]);await put(m)}
+ else if(a=='pt'&&m&&m.s=='live'){const g=m.gm[m.gm.length-1];if(+d.d>0&&gw(g[0],g[1],c))return;snap(m);g[+d.k]=Math.max(0,g[+d.k]+ +d.d);await put(m)}
+ else if(a=='end'&&m){const g=m.gm[m.gm.length-1];if(!gw(g[0],g[1],c)){if(g[0]==g[1]){msg='A tied game cannot be ended.';render();return}if(!confirm('Not a valid result under the current rules. Override and end this game?'))return;g[2]=1}
+  snap(m);const x=res(m,c);if(x.w||m.gm.length>=c.bestOf)m.s='done';else m.gm.push([0,0]);await put(m)}
+ else if(a=='undo'){const i=hist.map(z=>z.id).lastIndexOf(cur);if(i>=0&&m){const h=hist.splice(i,1)[0];m.gm=JSON.parse(h.gm);m.s=h.s;m.w=h.w;await put(m)}}
+ else if(a=='wo'&&m){snap(m);m.w=d.v;m.s='done';await put(m)}
+ else if(a=='reopen'&&m){snap(m);m.s='live';m.w='';if(!m.gm.length)m.gm.push([0,0]);await put(m)}
+ else if(a=='addm'){const A=$('#ma').value,B=$('#mb').value,dt=$('#md').value,t=$('#mt').value,ct=+$('#mc').value,st=$('#ms').value,ga=(S.teams.find(x=>x.id==A)||{}).group,gb=(S.teams.find(x=>x.id==B)||{}).group;
+  if(!A||!B)msg='Pick both teams.';else if(A==B)msg='Team A and Team B must be different.';else if(!dt||!t)msg='Pick a date and time.';
+  else if(S.m.some(x=>x.s!='done'&&x.d==dt&&x.t==t&&x.c==ct))msg='Court clash: that court is already booked at this time.';
+  else if(S.m.some(x=>x.d==dt&&x.t==t&&[x.a,x.b].some(i=>i&&(i==A||i==B))))msg='One of these teams already plays at that time.';
+  else{await DB.set('matches','m'+Date.now(),{st,g:st=='Group'&&ga==gb?ga:'',a:A,b:B,ha:'',hb:'',d:dt,t,c:ct,s:'up',gm:[],w:''});msg='✓ Match added.'}}
+ else if(a=='del'){if(confirm('Delete this match?'))await DB.del('matches',d.id)}
+ else if(a=='appr'){const r=S.reg.find(x=>x.id==d.id);if(S.teams.length>=c.max)msg='Tournament is full (max '+c.max+' teams). Raise the limit in Settings.';
+  else{await DB.set('teams',r.id,{name:r.name,color:r.color,logo:r.logo||'',captain:r.captain,group:document.getElementById('g_'+r.id).value,order:Date.now(),players:(r.players||[]).map(p=>({name:p.name,age:p.age,jersey:p.jersey,role:p.role,photo:p.photo||''}))});await DB.set('registrations',r.id,{status:'approved'});msg='✓ '+r.name+' approved and published.'}}
+ else if(a=='rej'){if(confirm('Reject this registration?'))await DB.set('registrations',d.id,{status:'rejected'})}
+ else if(a=='delt'){if(confirm('Delete this team?'))await DB.del('teams',d.id)}
+ else if(a=='seed'){if(confirm('This overwrites the tournament with the demo data. Continue?')){await DB.seed();msg='✓ Demo data loaded.'}}
+ else if(a=='savec'){const n=k=>+$('#c_'+k).value,v={name:$('#c_name').value.trim()||CFG0.name,dates:$('#c_dates').value.trim(),max:n('max'),gamePts:n('gamePts'),winBy:n('winBy'),cap:n('cap'),bestOf:n('bestOf'),winPts:n('winPts'),tiePts:n('tiePts'),lossPts:n('lossPts'),allowTie:$('#c_allowTie').checked,ann:$('#c_ann').value.split('\n').map(x=>x.trim()).filter(Boolean),bgPage:$('#c_bgPage').value.trim(),bgHero:$('#c_bgHero').value.trim()};
+  if([v.max,v.gamePts,v.winBy,v.cap,v.bestOf,v.winPts,v.tiePts,v.lossPts].some(x=>!Number.isInteger(x)||x<0))msg='Enter whole numbers (0 or more).';
+  else if(v.gamePts<1||v.winBy<1||v.max<2)msg='Points per game and win-by must be at least 1, and at least 2 teams are needed.';
+  else if(v.cap<v.gamePts)msg='The cap cannot be lower than points per game.';
+  else if([v.bgPage,v.bgHero].some(u=>u&&!/^https:\/\//.test(u)))msg='Image URLs must start with https://';
+  else{await DB.set('config','main',v);msg='✓ Settings saved.'}}
+ }catch(x){msg='Could not save: '+(x.code||x.message||x)}
+ render()});
+document.addEventListener('change',async e=>{const t=e.target,a=t.dataset.a;if(a=='pick'){cur=t.value||null;msg='';render()}else if(a=='grp'){try{await DB.set('teams',t.dataset.id,{group:t.value})}catch(x){msg='Could not save: '+(x.code||x.message);render()}}});
+document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='p'){const b=$('[data-a=login]');b&&b.click()}});
+DB.onAuth(u=>{user=u;if(u&&!started){started=true;DB.watch(d=>{S=d;if(!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))render()},true)}render()});
+</script></body></html>
