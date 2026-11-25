@@ -91,6 +91,12 @@ nav{backdrop-filter:none;background:rgba(2,10,18,.96)}
 .avl{position:relative;backdrop-filter:none;animation:none;box-shadow:0 0 24px rgba(57,255,20,.3),inset 0 0 30px rgba(57,255,20,.08)}
 .avl:after{content:"";position:absolute;inset:-2px;border-radius:18px;box-shadow:0 0 54px rgba(57,255,20,.65);opacity:0;animation:pu 2s ease-in-out infinite;pointer-events:none}
 .avl.full:after{box-shadow:0 0 54px rgba(255,179,0,.6)}@keyframes pu{50%{opacity:1}}
+dialog{max-height:92vh;overflow:auto}dialog p.os{font-size:14px;color:var(--g);margin:6px 0}dialog .fx{grid-template-columns:1fr}
+.pl{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));align-items:start}
+.pc{display:flex;flex-direction:column;overflow:hidden;padding-bottom:10px}
+.av{position:relative;display:block;width:100%;height:auto;aspect-ratio:1/1;overflow:hidden}
+.av img,.av svg{position:absolute;inset:0;width:100%;height:100%}.av img{object-fit:cover}.av svg{padding:22%}
+.np{margin:8px 8px 4px;padding:3px 4px;overflow-wrap:anywhere}
 footer{position:relative;z-index:1;text-align:center;padding:30px;color:#6fa3b3;border-top:1px solid var(--ln)}
 @media(max-width:760px){.hero,.vn{grid-template-columns:1fr}.fx{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -115,7 +121,7 @@ const table=g=>standings(g,TEAMS,S.m,S.cfg);
 Object.defineProperty(Element.prototype,'h',{set(v){if(this._h!==v){this._h=v;this.innerHTML=v}}});
 // ---- helpers ----
 const nm=(i,h)=>i==null?h:TEAMS[i][0];
-const crest=(i,z=60)=>{const t=TEAMS[i],L=t&&t[4]&&t[4].startsWith('data:image/')?t[4]:'',n=t?t[0].split(' ').map(w=>w[0]).join('').slice(0,2):'?';return`<div class="crest" style="--c1:${t?col(t[1]):'#334'};width:${z}px;height:${z*1.1}px;font-size:${z/3}px">${L?`<img src="${esc(L)}" alt="" decoding="async" style="width:68%;height:68%;object-fit:contain;margin-bottom:8px">`:`<b>${esc(n)}</b>`}</div>`};
+const crest=(i,z=60)=>{const t=TEAMS[i],L=t&&t[4]&&t[4].startsWith('data:image/')?t[4]:'',n=t?t[0].split(' ').map(w=>w[0]).join('').slice(0,2):'?';return`<div class="crest" style="--c1:${t?col(t[1]):'#334'};width:${z}px;height:${z*1.1}px;font-size:${z/3}px">${L?`<img src="${esc(L)}" alt="" decoding="async" style="width:62%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;margin-bottom:6px">`:`<b>${esc(n)}</b>`}</div>`};
 const when=m=>new Date(m.d+'T'+m.t).toLocaleDateString('en',{weekday:'short',day:'numeric',month:'short'})+' · '+m.t;
 const players=t=>{const P=TEAMS[t][3];if(P&&P.length)return P.map(p=>({n:p.name,j:p.jersey,r:p.role||'',ph:p.photo}));const F="Aarav,Vihaan,Kabir,Rohan,Ishaan,Arnav,Dev,Yash,Rahul,Karan,Neil,Sai".split(','),L="Singh,Rao,Das,Mehta,Nair,Roy,Patel,Kumar,Verma,Joshi,Shah,Reddy".split(',');return[0,1,2].map(k=>{const n=t*3+k;return{n:F[n%12]+' '+L[(n*5+3)%12],j:n+1,r:['Singles / Smash','Doubles / Net','Substitute'][k]}})};
 function strip(m){const x=res(m,S.cfg),d=m.s=='done',tag=s=>!d?'':x.w=='T'?'<i class="bd" style="--k:var(--t)">TIE</i>':x.w==s?'<i class="bd" style="--k:var(--w)">WIN</i>':'<i class="bd" style="--k:var(--l)">LOSS</i>';
@@ -144,7 +150,7 @@ const val=k=>esc(R.d[k]??''),er=k=>`<small class="er" id="e_${k}">${esc(R.err[k]
 const fld=(l,k,t='text',x='')=>`<label class="f">${l}<input data-k="${k}" type="${t}" value="${val(k)}" ${x}>${er(k)}</label>`;
 const sel=(l,k,o)=>`<label class="f">${l}<select data-k="${k}">${o.map(v=>`<option${R.d[k]==v?' selected':''}>${v}</option>`).join('')}</select>${er(k)}</label>`;
 const upl=(l,k)=>`<label class="f">${l} (jpg, png or webp, max 5 MB, optional)<input type="file" data-img="${k}" accept="image/jpeg,image/png,image/webp"><small class="er" id="e_img_${k}"></small>${R.img[k]?`<img class="pv" src="${R.img[k]}" alt="${esc(l)} preview">`:''}</label>`;
-const s1=()=>`<div class="fg">${fld('Team name *','team','text','maxlength=40 autocomplete=off')}<label class="f">Team colour<input data-k="color" type="color" value="${val('color')}"></label>${fld('Captain name *','cap','text','maxlength=60')}${fld('Captain phone *','cphone','tel','maxlength=16')}${fld('Captain email *','cmail','email','maxlength=80')}${fld('City / club *','club','text','maxlength=60')}</div>${upl('Team logo','logo')}`;
+const s1=()=>`<div class="fg">${fld('Team name *','team','text','maxlength=40 autocomplete=off')}<label class="f">Team colour<input data-k="color" type="color" value="${val('color')}"></label>${fld('Captain name *','cap','text','maxlength=60')}${fld('Captain phone *','cphone','tel','maxlength=16')}${fld('Captain email *','cmail','email','maxlength=80')}${fld('City / club *','club','text','maxlength=60')}</div>${upl('Team logo (auto-cropped to a square)','logo')}`;
 const s2=()=>[0,1,2].map(i=>`<div class="pb"><h3>${i<2?'Player '+(i+1):'Substitute (optional)'}</h3><div class="fg">${fld('Full name'+(i<2?' *':''),'n'+i,'text','maxlength=60')}${fld('Age','a'+i,'number','min=8 max=70')}${sel('Gender','g'+i,['','Male','Female','Other'])}${fld('Jersey no.','j'+i,'number','min=1 max=99')}${sel('Playing style','r'+i,['','Singles','Doubles','Mixed doubles','All-rounder'])}${fld('Phone','p'+i,'tel','maxlength=16')}</div>${upl('Photo (auto-cropped to a square)','ph'+i)}</div>`).join('');
 const s3=()=>{const d=R.d;return`<div class="pb"><b>${esc(d.team)}</b> · Captain ${esc(d.cap)} · ${esc(d.cphone)} · ${esc(d.cmail)} · ${esc(d.club)}</div>${[0,1,2].filter(i=>d['n'+i]).map(i=>`<div class="pb">#${esc(d['j'+i])} <b>${esc(d['n'+i])}</b> · ${esc(d['r'+i])} · age ${esc(d['a'+i])}</div>`).join('')}${fld('Payment reference / UPI transaction ID (optional)','pay','text','maxlength=40')}<label class="f"><input type="checkbox" data-k="rules" ${d.rules?'checked':''}>I accept the tournament rules *</label>${er('rules')}<label class="f"><input type="checkbox" data-k="consent" ${d.consent?'checked':''}>I agree to publish my team and player details and photos on this site *</label>${er('consent')}<input class="hp" data-k="hp" tabindex="-1" autocomplete="off" aria-hidden="true">${R.fail?`<p class="er" role="alert">${esc(R.fail)}</p>`:''}`};
 function wz(){const full=TEAMS.length>=S.cfg.max,el=$('#rg');
@@ -161,13 +167,13 @@ async function submit(){if(R.busy)return;R.busy=true;R.fail='';wz();const d=R.d;
   else{const r=await DB.register({name:d.team.trim(),color:d.color,logo:R.img.logo||'',captain:d.cap.trim(),phone:d.cphone,email:d.cmail,club:d.club.trim(),payRef:d.pay||''},[0,1,2].filter(i=>d['n'+i]).map(i=>({name:d['n'+i].trim(),age:+d['a'+i],gender:d['g'+i],jersey:+d['j'+i],role:d['r'+i],phone:d['p'+i],photo:R.img['ph'+i]||''})),code);out={ok:true,id:r.id,code}}
   R.done=out}catch(x){R.fail='Could not submit. Check your connection and retry.'}
  R.busy=false;wz()}
-function proc(file,sq,max){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);let sw=im.width,sh=im.height,sx=0,sy=0;if(sq){const m=Math.min(sw,sh);sx=(sw-m)/2;sy=(sh-m)/2;sw=sh=m}const k=Math.min(1,max/Math.max(sw,sh)),cv=document.createElement('canvas');cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);cv.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,cv.width,cv.height);ok(cv.toDataURL(file.type=='image/png'&&!sq?'image/png':'image/jpeg',.72))};im.onerror=()=>no(new Error('Could not read this image.'));im.src=u})}
+function proc(file,sq,max,png){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);let sw=im.width,sh=im.height,sx=0,sy=0;if(sq){const m=Math.min(sw,sh);sx=(sw-m)/2;sy=(sh-m)/2;sw=sh=m}const k=Math.min(1,max/Math.max(sw,sh)),cv=document.createElement('canvas');cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);cv.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,cv.width,cv.height);ok(cv.toDataURL(file.type=='image/png'&&png?'image/png':'image/jpeg',.72))};im.onerror=()=>no(new Error('Could not read this image.'));im.src=u})}
 const sv=e=>{const t=e.target,k=t.dataset.k;if(!k)return;R.d[k]=t.type=='checkbox'?t.checked:t.value;if(k=='team'&&e.type=='input'){const dup=TEAMS.some(x=>x[0].toLowerCase()==t.value.trim().toLowerCase());$('#e_team').textContent=dup?'That team name is taken.':''}};
 document.addEventListener('input',sv);document.addEventListener('change',sv);
 document.addEventListener('change',async e=>{const t=e.target,k=t.dataset.img,f=k&&t.files[0];if(!f)return;const m=$('#e_img_'+k);
  if(!['image/jpeg','image/png','image/webp'].includes(f.type)){m.textContent='Use a jpg, png or webp image.';t.value='';return}
  if(f.size>5*1048576){m.textContent='This image is larger than 5 MB.';t.value='';return}
- try{R.img[k]=await proc(f,k!='logo',k=='logo'?300:320);wz()}catch(x){m.textContent=x.message}});
+ try{R.img[k]=await proc(f,true,k=='logo'?300:320,k=='logo');wz()}catch(x){m.textContent=x.message}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-w]');if(!b)return;const w=b.dataset.w;
  if(w=='again')R=R0();else if(w=='back'){R.step--;R.err={};R.fail=''}
  else{R.err=check(R.step);if(Object.keys(R.err).length){wz();return}if(R.step==3){submit();return}R.step++}
